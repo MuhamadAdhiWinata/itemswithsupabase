@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CRUD Items - Supabase Realtime</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      input,
+      button {
+        padding: 6px;
+        margin: 4px;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-top: 20px;
+      }
+      th,
+      td {
+        border: 1px solid #ccc;
+        padding: 8px;
+      }
+      th {
+        background: #f4f4f4;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>CRUD Items (Supabase Realtime)</h1>
+
+    <div>
+      <input type="text" id="name" placeholder="Item Name" />
+      <input type="text" id="desc" placeholder="Description" />
+      <button onclick="addItem()">Add Item</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Description</th>
+          <th>Created At</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="itemsTable"></tbody>
+    </table>
+
+    <script>
+      const SUPABASE_URL = "https://pfcsfdpemqjzltlorete.supabase.co";
+      const SUPABASE_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmY3NmZHBlbXFqemx0bG9yZXRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUwNjk5MzcsImV4cCI6MjA3MDY0NTkzN30.SBsbASP1jPLAtLb9LzDvRHnjHAzTEEYXv46hInZsOU0";
+      const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+      // Load data awal
+      async function loadItems() {
+        const { data, error } = await supabase
+          .from("items")
+          .select("*")
+          .order("id", { ascending: true });
+
+        if (error) {
+          console.error(error);
+          return;
+        }
+
+        const table = document.getElementById("itemsTable");
+        table.innerHTML = "";
+        data.forEach((item) => {
+          table.innerHTML += `
+          <tr>
+            <td>${item.id}</td>
+            <td contenteditable="true" onblur="editField(${
+              item.id
+            }, 'name', this.innerText)">${item.name}</td>
+            <td contenteditable="true" onblur="editField(${
+              item.id
+            }, 'description', this.innerText)">${item.description || ""}</td>
+            <td>${item.created_at}</td>
+            <td>
+              <button onclick="deleteItem(${item.id})">Delete</button>
+            </td>
+          </tr>
+        `;
+        });
+      }
+
+      // Tambah data
+      async function addItem() {
+        const name = document.getElementById("name").value;
+        const desc = document.getElementById("desc").value;
+        if (!name) return alert("Name is required");
+
+        const { error } = await supabase
+          .from("items")
+          .insert([{ name, description: desc }]);
+
+        if (error) {
+          console.error(error);
+          return;
+        }
+
+        document.getElementById("name").value = "";
+        document.getElementById("desc").value = "";
+      }
+
+      // Edit data
+      async function editField(id, field, value) {
+        const { error } = await supabase
+          .from("items")
+          .update({ [field]: value })
+          .eq("id", id);
+
+        if (error) {
+          console.error(error);
+          alert("Failed to update");
+        }
+      }
+
+      // Hapus data
+      async function deleteItem(id) {
+        if (!confirm("Delete this item?")) return;
+
+        const { error } = await supabase.from("items").delete().eq("id", id);
+
+        if (error) {
+          console.error(error);
+          return;
+        }
+      }
+
+      // Realtime listener
+      function setupRealtime() {
+        supabase
+          .channel("realtime:items")
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "items" },
+            (payload) => {
+              console.log("Realtime change:", payload);
+              loadItems(); // refresh data tiap ada perubahan
+            }
+          )
+          .subscribe();
+      }
+
+      // Jalankan
+      loadItems();
+      setupRealtime();
+    </script>
+  </body>
+</html>
