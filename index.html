@@ -3,64 +3,583 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CRUD Items - Supabase Realtime</title>
+    <title>⚙️ RoboCRUD By Adhinath — Supabase</title>
+
+    <!-- Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600&display=swap"
+      rel="stylesheet" />
+
+    <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
-      body {
-        font-family: Arial, sans-serif;
-        margin: 20px;
+      :root {
+        --bg1: #06080f; /* deep space */
+        --bg2: #0b1022; /* nebula */
+        --panel: #0f152b88; /* glass panel */
+        --glass: #0f152bcc;
+        --stroke: #1b2a55;
+        --neon1: #00e1ff; /* cyan neon */
+        --neon2: #7b5cff; /* purple neon */
+        --neon3: #00ffa3; /* mint neon */
+        --text: #e6ebff;
+        --muted: #94a3b8;
+        --danger: #ff3b6b;
+        --warning: #ffbf37;
+        --ok: #37ff8b;
+        --shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
       }
-      input,
-      button {
-        padding: 6px;
-        margin: 4px;
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        background: radial-gradient(
+            1200px 600px at 80% -10%,
+            rgba(123, 92, 255, 0.25),
+            transparent 60%
+          ),
+          radial-gradient(
+            900px 700px at -10% 90%,
+            rgba(0, 225, 255, 0.18),
+            transparent 60%
+          ),
+          linear-gradient(120deg, var(--bg1), var(--bg2) 60%);
+        color: var(--text);
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial,
+          sans-serif;
+        overflow-x: hidden;
+      }
+
+      .grid {
+        max-width: 1100px;
+        margin: clamp(16px, 4vw, 48px) auto;
+        padding: 0 clamp(12px, 3vw, 24px);
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+
+      /* Header */
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-family: Orbitron, Inter, sans-serif;
+        filter: drop-shadow(0 0 12px rgba(123, 92, 255, 0.35));
+      }
+      .badge {
+        padding: 6px 10px;
+        border: 1px solid #243163;
+        border-radius: 999px;
+        background: linear-gradient(180deg, #0c1232cc, #0b1028aa);
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      /* Card / Glass */
+      .card {
+        background: linear-gradient(180deg, var(--glass), #0b1029a0);
+        border: 1px solid rgba(44, 61, 120, 0.5);
+        border-radius: 20px;
+        box-shadow: var(--shadow), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+        backdrop-filter: blur(10px) saturate(120%);
+      }
+      .card-head {
+        padding: 18px 20px;
+        border-bottom: 1px solid rgba(44, 61, 120, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .glow {
+        text-shadow: 0 0 14px rgba(0, 225, 255, 0.45);
+      }
+
+      /* Form */
+      .form {
+        padding: 18px 20px;
+        display: grid;
+        gap: 12px;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
+        gap: 12px;
+      }
+      @media (max-width: 700px) {
+        .row {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .input {
+        position: relative;
+      }
+      .input input {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 14px;
+        border: 1px solid #2b3b76;
+        outline: none;
+        background: linear-gradient(180deg, #0e1431, #0a0f26);
+        color: var(--text);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+        transition: 0.25s ease;
+      }
+      .input input:focus {
+        border-color: transparent;
+        box-shadow: 0 0 0 2px #1c2c61, 0 0 18px rgba(0, 225, 255, 0.35),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+        transform: translateZ(0) perspective(600px) translateY(-1px);
+      }
+
+      /* Buttons */
+      .btn {
+        padding: 12px 16px;
+        border-radius: 14px;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        color: #001219;
+        background: linear-gradient(180deg, #6ef9ff, #18d8ff);
+        box-shadow: 0 12px 30px rgba(0, 225, 255, 0.25),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+        transform: translateZ(0);
+        transition: transform 0.15s ease, box-shadow 0.25s ease,
+          filter 0.25s ease;
+      }
+      .btn:hover {
+        transform: translateY(-2px);
+        filter: brightness(1.05);
+      }
+      .btn:active {
+        transform: translateY(0);
+      }
+      .btn-ghost {
+        background: linear-gradient(180deg, #1a2450, #121a3a);
+        color: var(--text);
+        box-shadow: inset 0 0 0 1px #2b3b76, 0 10px 24px rgba(0, 0, 0, 0.35);
+      }
+      .btn-danger {
+        background: linear-gradient(180deg, #ff6f93, #ff3b6b);
+        color: white;
+        box-shadow: 0 12px 30px rgba(255, 59, 107, 0.25),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+      }
+      .btn-save {
+        background: linear-gradient(180deg, #8affc6, #34f59a);
+        box-shadow: 0 12px 30px rgba(52, 245, 154, 0.25),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+      }
+
+      /* Table */
+      .table-wrap {
+        overflow: auto;
       }
       table {
-        border-collapse: collapse;
         width: 100%;
-        margin-top: 20px;
+        border-collapse: separate;
+        border-spacing: 0;
+        min-width: 680px;
+      }
+      thead th {
+        text-align: left;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        color: var(--muted);
+        background: linear-gradient(180deg, #0f1534cc, #0b1029cc);
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        backdrop-filter: blur(8px);
       }
       th,
       td {
-        border: 1px solid #ccc;
-        padding: 8px;
+        padding: 14px 12px;
+        border-bottom: 1px solid #223168;
       }
-      th {
-        background: #f4f4f4;
+      tbody tr {
+        transition: background 0.2s ease;
+      }
+      tbody tr:hover {
+        background: linear-gradient(
+          90deg,
+          rgba(0, 225, 255, 0.06),
+          transparent
+        );
+      }
+
+      /* Tag time */
+      .time {
+        font-size: 12px;
+        color: var(--muted);
+        border: 1px dashed #2c3a72;
+        padding: 6px 8px;
+        border-radius: 10px;
+        background: linear-gradient(180deg, #0c1232, #0a0f26);
+      }
+
+      /* Robot SVG corner */
+      .robot {
+        position: fixed;
+        right: 24px;
+        bottom: 24px;
+        width: 130px;
+        height: 130px;
+        opacity: 0.9;
+        pointer-events: none;
+        filter: drop-shadow(0 0 18px rgba(0, 225, 255, 0.35));
+        animation: float 5s ease-in-out infinite;
+      }
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+      .scanline {
+        position: fixed;
+        inset: 0;
+        background: repeating-linear-gradient(
+          to bottom,
+          rgba(0, 255, 213, 0.06),
+          rgba(0, 255, 213, 0.06) 1px,
+          transparent 1px,
+          transparent 3px
+        );
+        mix-blend-mode: overlay;
+        pointer-events: none;
+        opacity: 0.2;
+      }
+
+      /* Loader */
+      .loader {
+        display: none;
+        gap: 10px;
+        align-items: center;
+        color: var(--muted);
+        font-size: 14px;
+        padding: 10px 16px;
+        border-radius: 12px;
+        width: max-content;
+        background: linear-gradient(180deg, #0e1431, #0b1026);
+        border: 1px solid #233063;
+        box-shadow: var(--shadow);
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--neon1);
+        animation: b 1.2s infinite;
+      }
+      .dot:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+      .dot:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+      @keyframes b {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-6px);
+        }
+      }
+
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      /* 3D header line */
+      .beam {
+        height: 2px;
+        width: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--neon1),
+          var(--neon2),
+          transparent
+        );
+        filter: drop-shadow(0 0 8px rgba(0, 225, 255, 0.6));
+        opacity: 0.6;
       }
     </style>
   </head>
   <body>
-    <h1>CRUD Items (Supabase Realtime)</h1>
+    <div class="grid">
+      <!-- Branding -->
+      <div class="card" style="padding: 18px 20px">
+        <div class="brand">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M7 8h10l2 4-2 4H7l-2-4 2-4Z"
+              stroke="url(#g1)"
+              stroke-width="1.6" />
+            <defs>
+              <linearGradient id="g1" x1="0" x2="24" y1="0" y2="24">
+                <stop stop-color="#00E1FF" />
+                <stop offset="1" stop-color="#7B5CFF" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <h2 class="glow" style="margin: 0">RoboCRUD By Adhinath</h2>
+          <span class="badge">Supabase Realtime</span>
+        </div>
+        <div class="beam" style="margin-top: 14px"></div>
+      </div>
 
-    <div>
-      <input type="text" id="name" placeholder="Item Name" />
-      <input type="text" id="desc" placeholder="Description" />
-      <button onclick="addItem()">Add Item</button>
+      <!-- Form Card -->
+      <div class="card">
+        <div class="card-head">
+          <div class="toolbar">
+            <strong class="glow">Create Item</strong>
+            <div class="loader" id="loader">
+              <div class="dot"></div>
+              <div class="dot"></div>
+              <div class="dot"></div>
+              <span style="margin-left: 6px">Processing…</span>
+            </div>
+          </div>
+        </div>
+        <form id="addForm" class="form">
+          <div class="row">
+            <div class="input">
+              <input
+                id="name"
+                placeholder="Name — e.g. Quantum Drive"
+                required />
+            </div>
+            <div class="input">
+              <input
+                id="desc"
+                placeholder="Description — e.g. Prototype Mark IV" />
+            </div>
+            <button class="btn" type="submit" title="Add new item">
+              + Add
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Table Card -->
+      <div class="card">
+        <div class="card-head">
+          <div class="toolbar">
+            <strong class="glow">Items</strong>
+            <span class="badge" id="countBadge">0 item</span>
+          </div>
+          <div class="toolbar">
+            <button class="btn-ghost btn" id="refreshBtn" type="button">
+              ⟳ Refresh
+            </button>
+          </div>
+        </div>
+
+        <div class="table-wrap" style="padding: 10px 12px 18px 12px">
+          <table id="table">
+            <thead>
+              <tr>
+                <th style="width: 70px">No</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th style="width: 180px">Created At</th>
+                <th style="width: 210px">Action</th>
+              </tr>
+            </thead>
+            <tbody id="itemsBody"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Description</th>
-          <th>Created At</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody id="itemsTable"></tbody>
-    </table>
+    <!-- Robot friend -->
+    <svg class="robot" viewBox="0 0 200 200">
+      <defs>
+        <linearGradient id="rb" x1="0" x2="1">
+          <stop offset="0" stop-color="#00E1FF" />
+          <stop offset="1" stop-color="#7B5CFF" />
+        </linearGradient>
+        <radialGradient id="eye" cx="50%" cy="50%" r="60%">
+          <stop offset="0" stop-color="#00FFA3" />
+          <stop offset="1" stop-color="#002a2e" />
+        </radialGradient>
+      </defs>
+      <!-- Body -->
+      <rect
+        x="45"
+        y="70"
+        rx="18"
+        ry="18"
+        width="110"
+        height="90"
+        fill="url(#rb)"
+        opacity="0.25"
+        stroke="#2a3a76" />
+      <!-- Head -->
+      <rect
+        x="60"
+        y="35"
+        rx="12"
+        ry="12"
+        width="80"
+        height="45"
+        fill="url(#rb)"
+        opacity="0.3"
+        stroke="#2a3a76" />
+      <!-- Antenna -->
+      <line
+        x1="100"
+        y1="25"
+        x2="100"
+        y2="12"
+        stroke="#00E1FF"
+        stroke-width="3" />
+      <circle cx="100" cy="10" r="4" fill="#00E1FF" />
+      <!-- Eyes -->
+      <circle cx="80" cy="58" r="8" fill="url(#eye)">
+        <animate
+          attributeName="r"
+          values="8;6;8"
+          dur="2s"
+          repeatCount="indefinite" />
+      </circle>
+      <circle cx="120" cy="58" r="8" fill="url(#eye)">
+        <animate
+          attributeName="r"
+          values="8;6;8"
+          dur="2s"
+          begin=".2s"
+          repeatCount="indefinite" />
+      </circle>
+      <!-- Wave -->
+      <path
+        d="M60,110 C80,90 120,130 140,110"
+        stroke="url(#rb)"
+        stroke-width="3"
+        fill="none"
+        opacity=".8">
+        <animate
+          attributeName="d"
+          dur="2.6s"
+          repeatCount="indefinite"
+          values="M60,110 C80,90 120,130 140,110;
+                M60,110 C80,130 120,90 140,110;
+                M60,110 C80,90 120,130 140,110" />
+      </path>
+    </svg>
+
+    <div class="scanline"></div>
 
     <script>
+      // ======= CONFIG =======
       const SUPABASE_URL = "https://pfcsfdpemqjzltlorete.supabase.co";
       const SUPABASE_KEY =
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmY3NmZHBlbXFqemx0bG9yZXRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUwNjk5MzcsImV4cCI6MjA3MDY0NTkzN30.SBsbASP1jPLAtLb9LzDvRHnjHAzTEEYXv46hInZsOU0";
-      const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-      // Load data awal
+      // ======= ELEMENTS =======
+      const addForm = document.getElementById("addForm");
+      const nameEl = document.getElementById("name");
+      const descEl = document.getElementById("desc");
+      const bodyEl = document.getElementById("itemsBody");
+      const loader = document.getElementById("loader");
+      const countBadge = document.getElementById("countBadge");
+      const refreshBtn = document.getElementById("refreshBtn");
+
+      let editingId = null; // which row is in edit mode
+
+      function showLoading(on) {
+        loader.style.display = on ? "flex" : "none";
+      }
+
+      function fmtDate(iso) {
+        if (!iso) return "";
+        try {
+          return new Date(iso).toLocaleString("id-ID");
+        } catch {
+          return iso;
+        }
+      }
+
+      function rowTemplate(item, idx) {
+        if (editingId === item.id) {
+          return `
+          <tr data-id="${item.id}">
+            <td>${idx + 1}</td>
+            <td><input id="e-name-${item.id}" value="${escapeHtml(
+            item.name || ""
+          )}" class="inline-input"/></td>
+            <td><input id="e-desc-${item.id}" value="${escapeHtml(
+            item.desc || ""
+          )}" class="inline-input"/></td>
+            <td><span class="time">${fmtDate(item.created_at)}</span></td>
+            <td style="display:flex; gap:8px;">
+              <button class="btn btn-save" onclick="saveEdit(${
+                item.id
+              })">Save</button>
+              <button class="btn btn-ghost" onclick="cancelEdit()">Cancel</button>
+            </td>
+          </tr>
+        `;
+        }
+        return `
+        <tr data-id="${item.id}">
+          <td>${idx + 1}</td>
+          <td>${escapeHtml(item.name || "")}</td>
+          <td>${escapeHtml(item.desc || "")}</td>
+          <td><span class="time">${fmtDate(item.created_at)}</span></td>
+          <td style="display:flex; gap:8px;">
+            <button class="btn btn-ghost" onclick="startEdit(${
+              item.id
+            })">Edit</button>
+            <button class="btn btn-danger" onclick="deleteItem(${
+              item.id
+            })">Delete</button>
+          </td>
+        </tr>
+      `;
+      }
+
+      function render(data) {
+        bodyEl.innerHTML = data.map((it, i) => rowTemplate(it, i)).join("");
+        countBadge.textContent = `${data.length} item${
+          data.length !== 1 ? "s" : ""
+        }`;
+        // style inputs of inline edit
+        document.querySelectorAll(".inline-input").forEach((inp) => {
+          inp.style.cssText = `
+          width:100%; padding:10px 12px; border-radius:10px; border:1px solid #2b3b76;
+          background: linear-gradient(180deg, #0e1431, #0a0f26); color: var(--text);
+          box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
+        `;
+        });
+      }
+
       async function loadItems() {
-        const { data, error } = await supabase
+        const { data, error } = await client
           .from("items")
           .select("*")
           .order("id", { ascending: true });
@@ -69,90 +588,122 @@
           console.error(error);
           return;
         }
-
-        const table = document.getElementById("itemsTable");
-        table.innerHTML = "";
-        data.forEach((item) => {
-          table.innerHTML += `
-          <tr>
-            <td>${item.id}</td>
-            <td contenteditable="true" onblur="editField(${
-              item.id
-            }, 'name', this.innerText)">${item.name}</td>
-            <td contenteditable="true" onblur="editField(${
-              item.id
-            }, 'description', this.innerText)">${item.description || ""}</td>
-            <td>${item.created_at}</td>
-            <td>
-              <button onclick="deleteItem(${item.id})">Delete</button>
-            </td>
-          </tr>
-        `;
-        });
+        render(data || []);
       }
 
-      // Tambah data
-      async function addItem() {
-        const name = document.getElementById("name").value;
-        const desc = document.getElementById("desc").value;
-        if (!name) return alert("Name is required");
-
-        const { error } = await supabase
-          .from("items")
-          .insert([{ name, description: desc }]);
-
+      // ======= CRUD =======
+      addForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const name = nameEl.value.trim();
+        const desc = descEl.value.trim();
+        if (!name) {
+          nameEl.focus();
+          return;
+        }
+        showLoading(true);
+        const { error } = await client.from("items").insert([{ name, desc }]);
+        showLoading(false);
         if (error) {
+          alert("Failed to add item");
           console.error(error);
           return;
         }
+        addForm.reset();
+        await loadItems(); // instant refresh
+      });
 
-        document.getElementById("name").value = "";
-        document.getElementById("desc").value = "";
+      function startEdit(id) {
+        editingId = id;
+        loadItems();
       }
 
-      // Edit data
-      async function editField(id, field, value) {
-        const { error } = await supabase
+      function cancelEdit() {
+        editingId = null;
+        loadItems();
+      }
+
+      async function saveEdit(id) {
+        const name = document.getElementById(`e-name-${id}`).value.trim();
+        const desc = document.getElementById(`e-desc-${id}`).value.trim();
+        showLoading(true);
+        const { error } = await client
           .from("items")
-          .update({ [field]: value })
+          .update({ name, desc })
           .eq("id", id);
-
+        showLoading(false);
         if (error) {
-          console.error(error);
           alert("Failed to update");
+          console.error(error);
+          return;
         }
+        editingId = null;
+        await loadItems();
       }
 
-      // Hapus data
       async function deleteItem(id) {
         if (!confirm("Delete this item?")) return;
-
-        const { error } = await supabase.from("items").delete().eq("id", id);
-
+        showLoading(true);
+        const { error } = await client.from("items").delete().eq("id", id);
+        showLoading(false);
         if (error) {
+          alert("Failed to delete");
           console.error(error);
           return;
         }
+        await loadItems();
       }
 
-      // Realtime listener
-      function setupRealtime() {
-        supabase
-          .channel("realtime:items")
-          .on(
-            "postgres_changes",
-            { event: "*", schema: "public", table: "items" },
-            (payload) => {
-              console.log("Realtime change:", payload);
-              loadItems(); // refresh data tiap ada perubahan
-            }
-          )
-          .subscribe();
+      // expose for inline handlers
+      window.startEdit = startEdit;
+      window.cancelEdit = cancelEdit;
+      window.saveEdit = saveEdit;
+      window.deleteItem = deleteItem;
+
+      refreshBtn.addEventListener("click", loadItems);
+
+      // ======= REALTIME =======
+      client
+        .channel("realtime:items")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "items" },
+          async (payload) => {
+            console.log("Realtime change", payload);
+            await loadItems();
+            pulseRow(payload.new?.id ?? payload.old?.id);
+          }
+        )
+        .subscribe();
+
+      function pulseRow(id) {
+        if (!id) return;
+        const tr = bodyEl.querySelector(`tr[data-id="${id}"]`);
+        if (!tr) return;
+        tr.style.boxShadow =
+          "0 0 0 1px #00e1ff, 0 0 28px rgba(0,225,255,.35) inset";
+        tr.style.transition = "box-shadow .6s ease";
+        setTimeout(() => {
+          tr.style.boxShadow = "";
+        }, 900);
       }
 
-      // Jalankan
+      // ======= UTIL =======
+      function escapeHtml(str) {
+        return (str ?? "").toString().replace(
+          /[&<>"']/g,
+          (s) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#039;",
+            }[s])
+        );
+      }
+
+      // initial
       loadItems();
-      setupRealtime();
     </script>
   </body>
 </html>
