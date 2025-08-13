@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RoboKuis</title>
+    <script src="https://unpkg.com/@supabase/supabase-js"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap");
+
+      body {
+        font-family: "Orbitron", sans-serif;
+        background: radial-gradient(circle at top, #0a0a0f, #000);
+        color: #00eaff;
+        text-align: center;
+        min-height: 100vh;
+        padding: 0;
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        text-shadow: 0 0 15px #00f0ff, 0 0 25px #00f0ff;
+        margin-bottom: 30px;
+      }
+
+      .container {
+        max-width: 700px;
+        margin: auto;
+        padding: 20px;
+        margin-top: 24px;
+        background: rgba(10, 10, 20, 0.8);
+        border: 2px solid #00eaff;
+        border-radius: 12px;
+        box-shadow: 0 0 20px #00eaff;
+      }
+
+      input[type="text"] {
+        padding: 10px;
+        width: 80%;
+        border-radius: 6px;
+        border: 2px solid #00eaff;
+        background: black;
+        color: #00eaff;
+        font-size: 1rem;
+        outline: none;
+        text-align: center;
+        box-shadow: 0 0 10px #00eaff;
+      }
+
+      .question {
+        font-size: 20px;
+        margin-bottom: 20px;
+        text-shadow: 0 0 8px #ff00f0;
+      }
+
+      .option {
+        display: block;
+        margin: 10px 0;
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.7);
+        border: 2px solid #00eaff;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-shadow: 0 0 5px #00eaff;
+      }
+
+      .option:hover {
+        background: rgba(0, 234, 255, 0.2);
+        box-shadow: 0 0 15px #00eaff;
+        transform: scale(1.02);
+      }
+
+      .btn {
+        padding: 10px 25px;
+        margin-top: 20px;
+        background: linear-gradient(90deg, #00eaff, #ff00f0);
+        border: none;
+        border-radius: 6px;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.3s;
+        box-shadow: 0 0 15px #ff00f0, 0 0 20px #00eaff;
+      }
+
+      .btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 25px #ff00f0, 0 0 30px #00eaff;
+      }
+
+      .score {
+        font-size: 24px;
+        margin-top: 20px;
+        text-shadow: 0 0 10px #00eaff, 0 0 15px #ff00f0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🤖 RoboKuis</h1>
+
+      <!-- Form Nama -->
+      <div id="startScreen">
+        <input
+          type="text"
+          id="username"
+          placeholder="Masukkan Nama"
+          required
+          style="padding: 10px; width: 80%; border-radius: 6px" />
+        <button class="btn" onclick="startQuiz()">Mulai Kuis</button>
+      </div>
+      <!-- Soal -->
+      <div id="quizScreen" style="display: none">
+        <div class="question" id="questionText"></div>
+        <div id="optionsContainer"></div>
+        <button
+          class="btn"
+          id="nextBtn"
+          style="display: none"
+          onclick="nextQuestion()">
+          Lanjut
+        </button>
+        <button
+          class="btn"
+          id="finishBtn"
+          style="display: none"
+          onclick="finishQuiz()">
+          Selesai
+        </button>
+      </div>
+
+      <!-- Score -->
+      <div id="resultScreen" style="display: none">
+        <div class="score" id="scoreText"></div>
+        <button class="btn" onclick="location.reload()">Main Lagi</button>
+        <button class="btn" onclick="window.location.href='index.html'">
+          Kembali
+        </button>
+      </div>
+    </div>
+
+    <script>
+      const SUPABASE_URL = "https://pfcsfdpemqjzltlorete.supabase.co";
+      const SUPABASE_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmY3NmZHBlbXFqemx0bG9yZXRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUwNjk5MzcsImV4cCI6MjA3MDY0NTkzN30.SBsbASP1jPLAtLb9LzDvRHnjHAzTEEYXv46hInZsOU0";
+      const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+      let username = "";
+      let quizzes = [];
+      let currentIndex = 0;
+      let score = 0;
+
+      async function startQuiz() {
+        username = document.getElementById("username").value.trim();
+        if (!username) {
+          alert("Masukkan nama dulu!");
+          return;
+        }
+        // Ambil soal dari Supabase
+        const { data, error } = await supabaseClient
+          .from("quizzes")
+          .select("*");
+        if (error) {
+          console.error(error);
+          alert("Gagal mengambil soal!");
+          return;
+        }
+        quizzes = data;
+        currentIndex = 0;
+        score = 0;
+
+        document.getElementById("startScreen").style.display = "none";
+        document.getElementById("quizScreen").style.display = "block";
+
+        showQuestion();
+      }
+
+      function showQuestion() {
+        const q = quizzes[currentIndex];
+        document.getElementById("questionText").textContent = q.question;
+        const optionsContainer = document.getElementById("optionsContainer");
+        optionsContainer.innerHTML = "";
+
+        ["a", "b", "c", "d"].forEach((opt) => {
+          const btn = document.createElement("div");
+          btn.className = "option";
+          btn.textContent = q[`option_${opt}`];
+          btn.onclick = () => selectAnswer(opt.toUpperCase());
+          optionsContainer.appendChild(btn);
+        });
+
+        document.getElementById("nextBtn").style.display = "none";
+        document.getElementById("finishBtn").style.display = "none";
+      }
+
+      async function selectAnswer(option) {
+        const q = quizzes[currentIndex];
+        const isCorrect = option === q.correct_option;
+        if (isCorrect) score++;
+
+        // Simpan jawaban ke Supabase
+        await supabaseClient.from("quiz_answers").insert([
+          {
+            username: username,
+            quiz_id: q.id,
+            selected_option: option,
+            is_correct: isCorrect,
+          },
+        ]);
+
+        if (currentIndex < quizzes.length - 1) {
+          document.getElementById("nextBtn").style.display = "inline-block";
+        } else {
+          document.getElementById("finishBtn").style.display = "inline-block";
+        }
+      }
+
+      function nextQuestion() {
+        currentIndex++;
+        showQuestion();
+      }
+
+      function finishQuiz() {
+        document.getElementById("quizScreen").style.display = "none";
+        document.getElementById("resultScreen").style.display = "block";
+        document.getElementById(
+          "scoreText"
+        ).textContent = `Selamat ${username}! Skor kamu: ${score} / ${quizzes.length}`;
+      }
+    </script>
+  </body>
+</html>
